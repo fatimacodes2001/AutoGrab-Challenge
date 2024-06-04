@@ -1,57 +1,104 @@
-## Vehicle Matching Code Challenge
+# Vehicle Matching Solution
 
-You have been provided with a SQL script that creates two tables: `vehicle` and `listing` (`data.sql`). 
-To start working on this code challenge, you will need to set up a local Postgresql database and run the script to insert the necessary tables and data.
+This repository contains a solution for matching vehicle descriptions to a database of vehicles. The solution uses a combination of string similarity measures, regex patterns, and a custom spelling corrector to handle misspellings and variations in descriptions.
 
-**Vehicle Table**
+## Repository Structure
 
-The `vehicle` table is a structured catalogue of vehicle variants, segmented by Make, Model, Badge, Fuel Type, Transmission Type and Drive Type.
+- `main.py`: The main script to run the solution.
+- `spelling_corrector.py`: Contains the `SpellingCorrector` class used to correct misspelled words in descriptions.
+- `utils.py`: Contains various utility functions for text cleaning, similarity computation, regex generation, and pattern matching.
+- `data/`: Folder containing the following files:
+  - `data.sql`: Script to populate the database with vehicle data.
+  - `inputs.txt`: Test data containing vehicle descriptions.
+  - `gt.txt`: Ground truth data for testing.
+- `.env.sample`: Sample environment variables file.
 
-**Listing Table**
+## Setup
 
-The `listing` table contains records of vehicle listings that have been posted to online marketplaces (Gumtree, Facebook Marketplace, etc).
+1.  **Install Conda**: If you don't have Conda installed, download and install it from [here](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html).
 
-Each `listing` record is linked back to the corresponding `vehicle` record that describes the type of car being sold.
+2.  **Create Conda Environment**:
 
-**Description Input File**
+    ```sh
+    conda create --name vehicle-matching python=3.10
+    conda activate vehicle-matching
+    ```
 
-You've also been provided with a file that contains car descriptions (`inputs.txt`). 
+3.  **Install Dependencies**:
 
-In this file, each line corresponds to a different car description. 
-The descriptions are in plain text, and resemble the type of car descriptions that you might find on a car listing marketplace.
+    ```sh
+        pip install -r requirements.txt
+    ```
 
-The car descriptions might be very detailed and specify every attribute of the car, but they could also be vague and/or inaccurate.
-For example, some descriptions might not specify the fuel type of the car (Diesel, Petrol or Hybrid-Petrol).
+4.  **Set Up Environment Variables**:
 
-## Requirements
+    - Create a `.env` file in the root directory.
+    - Add the following environment variables to the `.env` file:
 
-You must create a Python or Node.js program that finds a matching Vehicle ID for each description in the provided `input.txt` file.
+    ```sh
 
-The output of your program must show the matching Vehicle ID for each description, as well as a confidence score from 0 to 10. 
-A confidence score of 0 would indicate a very uncertain match, whereas a confidence score of 10 would indicate that the match was definitely correct.
+        DB_NAME=your_database_name
+        DB_USER=your_database_user
+        DB_PASSWORD=your_database_password
+        DB_HOST=your_database_host
+        DB_PORT=your_database_port
+    ```
 
-For example, if the description did not specify the transmission type of the car, the confidence score would likely be lower than a description that did specify the transmission type (Automatic or Manual).
+## Running the Solution:
 
-If there are multiple vehicles which you find to be the most likely match, you should return the vehicle which has the most listings associated with it in the `listing` table.
+- Run the solution using the following command:
 
-Your program must interact with the `vehicle` and `listing` tables by running SQL queries from within your program. You should not need to edit the SQL data.
+  ```sh
+  python main.py
+  ```
 
-You can use a combination of regular expressions, sql and standard algorithms/logic to match the vehicles. Your program should print the vehicle match response for each of the provided test cases - both the matching vehicle ID as well as the confidence score.
+  The solution operates in two modes: user and test and you will be prompted to choose one.
 
-## Example Output
+## Solution:
 
-Your program output should contain a result for **all** of the descriptions in the input file, but below you can find an example for a select few descriptions.
+### User Mode
 
-```
-Input: Volkswagen Golf 110TSI Comfortline Petrol Automatic Front Wheel Drive
-Vehicle ID: 4749339721203712
-Confidence: 9
+In this mode, you can interactively enter vehicle descriptions and get the best matching vehicle from the database.
 
-Input: VW Amarok Ultimate 
-Vehicle ID: 4951649860714496
-Confidence: 7
+- The user is prompted to enter a vehicle description.
+- The description is cleaned and corrected for spelling errors using the SpellingCorrector.
+- The cleaned description is matched against the column values using regex patterns and string similarity measures.
+- The best match is returned along with the confidence score.
+- If two matches tie on confidences, the one with more listings it returned.
 
-Input: VW Golf R with engine swap from Toyota 86 GT
-Vehicle ID: 5824662093168640
-Confidence: 6
-```
+### Test Mode
+
+In this mode, the solution tests the accuracy of matching using predefined test data.
+
+- The test descriptions are read from data/inputs.txt.
+- The ground truth vehicle IDs are read from data/gt.txt.
+- Each description is cleaned and corrected using the SpellingCorrector.
+- Descriptions are matched against the database and the results are compared with the ground truth.
+- The accuracy is reported.
+
+## Key Utilities:
+
+- `clean_text(text)`: Cleans the input text by removing special characters.
+- `clean_description(description, corrector)`: Cleans and corrects the description using the spelling corrector.
+- `sequence_similarity(seq1, seq2)`: Computes the similarity between two sequences.
+- `generate_patterns(unique_values)`: Generates regex patterns for matching.
+- `generate_correct_words_list(conn)`: Generates a list of correct words from the database.
+- `Spelling Corrector`:
+  The SpellingCorrector class is used to correct misspelled words in the descriptions. It uses a list of correct words generated from the database and matches words with possible misspellings using the difflib library.
+
+## Assumptions:
+
+- `Greater Overlap Means Greater Match`: While creating gt.txt, it was assumed that a greater overlap between the description and the vehicle attributes indicates a greater match.
+  Substring and Superstring Matching:
+
+- The regex patterns are generated to match both substrings and superstrings of the attributes. This ensures that partial matches are also considered during the matching process.
+
+## Results:
+
+- The solution achieved an accuracy of 93.75% on the test data.
+
+## Future Improvements:
+
+- A regular expression based approach does not perform very well where semantic understanding of
+  the text is required. A hybrid approach with machine
+  learning incorporated can be used to improve the accuracy of the approach
