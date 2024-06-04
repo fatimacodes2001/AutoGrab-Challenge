@@ -8,6 +8,7 @@ from spelling_corrector import SpellingCorrector
 
 from utils import (sequence_similarity, replace_word, perform_replacements, clean_text, clean_description, find_longest_string, generate_regex_for_word, generate_combined_regex, generate_patterns, generate_correct_words_list)
 
+# Function to connect to the database
 def connect_db():
     load_dotenv()
     conn = psycopg2.connect(
@@ -19,12 +20,14 @@ def connect_db():
     )
     return conn
 
+# Function to fetch unique values from vehicle table for a column
 def fetch_unique_values(conn, column_name):
     with conn.cursor() as cur:
         cur.execute(sql.SQL("SELECT DISTINCT {} FROM vehicle").format(sql.Identifier(column_name)))
         values = [row[0] for row in cur.fetchall()]
     return values
 
+# Function to get the listing counts for each vehicle
 def get_vehicle_listing_counts(conn):
     with conn.cursor() as cur:
         cur.execute("""
@@ -35,14 +38,14 @@ def get_vehicle_listing_counts(conn):
         listing_counts = {row[0]: row[1] for row in cur.fetchall()}
     return listing_counts
 
-
+# Function to get vehicle data from the database
 def get_vehicle_data(conn):
     with conn.cursor() as cur:
         cur.execute("SELECT * FROM vehicle")
         vehicles = cur.fetchall()
     return vehicles
 
-
+# Function to parse the attributes from the description
 def parse_attributes(description, column_patterns):
     matches = {key: [] for key in column_patterns.keys()}
 
@@ -57,6 +60,7 @@ def parse_attributes(description, column_patterns):
                 s = difflib.SequenceMatcher(None, match_text, value)
                 match_block = s.find_longest_match(0, len(match_text), 0, len(value))
                 
+                # Extract the overlapping text
                 if match_block.size > 0:
                     source_text = match_text if len(match_text) < len(value) else value
                     target_text = value if source_text == match_text else match_text
@@ -69,9 +73,11 @@ def parse_attributes(description, column_patterns):
 
 def compute_confidence(matches, vehicle_attributes):
     total_confidence = 0
+    # Each column has a weight of 10/6 since we have 6 columns and total score has to be out of 10
     column_weight = (10 / 6) 
 
     for attribute, match_values in matches.items():
+        # Use the match which has the longest common subsequence with the attribute value
         match_value = find_longest_string(match_values)
         if match_value and vehicle_attributes[attribute]:
             match_similarity = sequence_similarity(match_value, clean_text(vehicle_attributes[attribute]))
@@ -101,6 +107,7 @@ def match_description(description, vehicles, column_patterns, conn):
         }
 
         confidence = compute_confidence(matches, vehicle_attributes)
+        # Breaking tie by selecting the vehicle with the most listings
         listings = listing_counts.get(vehicle_id, 0) 
         if confidence > max_confidence or (confidence == max_confidence and listings > max_listings):
             max_confidence = confidence
